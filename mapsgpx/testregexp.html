@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<!--
+ *  © 2014 Pere Nubiola i Radigales
+ *  This file is part of mapsgpx.
+
+    mapsgpx is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    mapsgpx is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with mapsgpx.  If not, see <http://www.gnu.org/licenses/>.
+ -->
+	<head>
+		<meta charset="UTF-8" />
+		<script type="text/javascript" src = "mapsgpxmess.js"></script>
+		<script type="text/javascript" src = "mapsgpximg.js"></script>
+		<script type="text/javascript">
+		var worker = new Worker('mapsgpximg.js');
+		worker.onmessage = function(event){
+			var mes = event.data;
+		//recmess = function(mes){
+			if (mes.filename !== null)	document.getElementById('filename').innerHTML = mes.filename;
+			else document.getElementById('filename').innerHTML = "Null";
+			document.getElementById('orient').innerHTML = mes.orientation;
+			if (mes.dtchange != null) document.getElementById('dtchange').innerHTML = mes.dtchange.toLocaleString();
+			else document.getElementById('dtchange').innerHTML = "Null";
+			if (mes.dtoriginal != null) document.getElementById('dtoriginal').innerHTML = mes.dtoriginal.toLocaleString();
+			else document.getElementById('dtoriginal').innerHTML = "Null";
+			if (mes.dtdigital != null) document.getElementById('dtdigital').innerHTML = mes.dtdigital.toLocaleString();
+			else document.getElementById('dtdigital').innerHTML = "Null";
+			if (mes.author !== null)	document.getElementById('author').innerHTML = mes.author;
+			else document.getElementById('author').innerHTML = "Null";
+			if (mes.title !== null)	document.getElementById('title').innerHTML = mes.title;
+			else document.getElementById('title').innerHTML = "Null";
+			if (mes.gpslat !== null)	document.getElementById('gpslat').innerHTML = mes.gpslat.toString();
+			else document.getElementById('gpslat').innerHTML = "Null";
+			if (mes.gpslon !== null)	document.getElementById('gpslon').innerHTML = mes.gpslon.toString();
+			else document.getElementById('gpslon').innerHTML = "Null";
+			if (mes.gpsalt !== null)	document.getElementById('gpsalt').innerHTML = mes.gpsalt.toString();
+			else document.getElementById('gpsalt').innerHTML = "Null";
+			if (mes.gpsdate != null) document.getElementById('gpsdate').innerHTML = mes.gpsdate.toLocaleString();
+			else document.getElementById('gpsdate').innerHTML = "Null";
+			if (mes.error != null) document.getElementById('meserror').innerHTML = mes.error;
+			else document.getElementById('meserror').innerHTML = "Ok";
+			
+		}
+		var testExif = function(){
+			var file = document.getElementById('photos').files[0];
+			worker.postMessage(file);
+			console.log("call reasdobject");
+			//new readObject(file , recmess);
+			
+		}
+		var setTimesValues = function() {
+			var t = new Date();
+			document.getElementById("utctm").value = t.toUTCString();
+			document.getElementById("localtm").value = t.toLocaleString();
+			document.getElementById("ofset").value = " " + t.getTimezoneOffset();
+			t.setTime(t.getTime() + (t.getTimezoneOffset() * 60000));
+			document.getElementById("timeModified").value = t.toLocaleString();
+			
+			
+		}
+		var replace = function() {
+			var rr = /\//g;
+			var s = document.getElementById("localtm").value;
+			var t = rr.test(s);
+			var k = s.replace(rr, ':');
+			
+			document.getElementById("timeModified").value = k ;
+		}
+		var MyTest = function() {
+			var t = document.getElementById("textinput").value;
+			var r = document.getElementById("regexp").value;
+			var rr;
+			try {
+				//rr = new RegExp(r);
+				rr = /[0-9]{4}:[0-9]{2}:[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}/g;
+			}catch(err){
+				document.getElementById("test").value = "true";
+				return ;
+			}
+			try {
+				if (rr.test(t)) document.getElementById("test").value = "true";
+				else document.getElementById("test").value = "false";
+			}catch(err1){
+				alert("error" + e)
+			}
+			
+		}</script>
+		
+	</head>
+	<body onload="setTimesValues();">
+		<form action="">
+			Text: <input type="text" id="textinput"></input>
+			Regexp: <input type="text" id="regexp"></input>
+			test: <input type="text" id="test"></input>
+			<input type="button" id="NoClear" onclick="MyTest()" value="Test value"></input>
+		</form>
+		<div>
+			<form action="">
+				UTC: <input type="text" id="utctm"></input>
+				local: <input type="text" id="localtm"></input>
+				Ofsset: <input type="text" id="ofset"></input>
+				LocalTimeMod: <input type="text" id="timeModified"></input>
+				<input type="button" id="STimesData" onclick="setTimesValues()" value="Test value"></input>
+				<input type="button" id="convertData" onclick="replace()" value="Test value"></input>
+			</form>
+		</div>
+		<div>
+			<input id="photos" type="file" accept="image/jpeg" onchange="testExif();" />
+			<div><span>Filename: </span><span id="filename"></span></div>
+			<div><span>Orientation: </span><span id="orient"></span></div>
+			<div><span>DTchange: </span><span id="dtchange"></span></div>
+			<div><span>DToriginal: </span><span id="dtoriginal"></span></div>
+			<div><span>DTdigital: </span><span id="dtdigital"></span></div>
+			<div><span>author: </span><span id="author"></span></div>
+			<div><span>title: </span><span id="title"></span></div>
+			<div><span>gpslat: </span><span id="gpslat"></span></div>
+			<div><span>gpslon: </span><span id="gpslon"></span></div>
+			<div><span>gpsalt: </span><span id="gpsalt"></span></div>
+			<div><span>gpsdate: </span><span id="gpsdate"></span></div>
+			<div><span>error: </span><span id="meserror"></span></div>
+			
+		</div>
+	</body>
+</html>
