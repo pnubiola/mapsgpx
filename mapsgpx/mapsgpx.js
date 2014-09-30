@@ -28,9 +28,24 @@ var mapsgpx = function(mapcanvas , gpxfile , imgfiles) {
 	var wayp = null;
 	var rte = null;
 	var tck = null;
+	var map = null;
+	var numWorkers = 0;
 	this.getUser = function(elen) {
-		if (UserData)
-			UserData.getUserData(elen);
+		if (UserData) UserData.getUserData(elen);
+		else null;
+	}
+	this.readFileImages= function(im){
+		setWorkers(im);
+	}
+	var setWorkers = function(im){
+		numWorkers = im.length;
+		for (var i = 0 ; i < numWorkers ; i++){
+			var w = new Worker('mapsgpximg.js');
+			w.onmessage = getWorkerResult ;
+			im[i].hasWayPoint = false;
+			w.postMessage(im[i]);
+		}
+		
 	}
 	reader.onloadend = function() {
 		if (window.DOMParser) {
@@ -47,8 +62,7 @@ var mapsgpx = function(mapcanvas , gpxfile , imgfiles) {
 		var lonmin;
 		var latmax;
 		var latmin;
-		var data = xmldata.getElementsByTagNameNS(
-				"http://www.topografix.com/GPX/1/1", "metadata");
+		var data = xmldata.getElementsByTagNameNS("http://www.topografix.com/GPX/1/1", "metadata");
 		if (data.length > 0) {
 			UserData = new userdata();
 			var a = UserData.setUserData(data[0]);
@@ -57,78 +71,61 @@ var mapsgpx = function(mapcanvas , gpxfile , imgfiles) {
 				latmin = UserData.getMinlat();
 				lonmax = UserData.getMaxlon();
 				lonmin = UserData.getMinlon();
-				calccenter = false
+				calccenter = false;
 			}
 		} else {
 			latmax = -180;
 			latmin = 180;
 			lonmax = -180;
 			lonmin = 180;
-			calccenter = true
+			calccenter = true;
 		}
 		// waypoint
-		var data = xmldata.getElementsByTagNameNS(
-				"http://www.topografix.com/GPX/1/1", "wpt");
+		var data = xmldata.getElementsByTagNameNS("http://www.topografix.com/GPX/1/1", "wpt");
 		for (var i = 0; i < data.length; i++) {
-			if (i == 0)
-				wayp = [];
+			if (i == 0)	wayp = [];
 			wayp[i] = new waypoint();
 			wayp[i].init(data[i]);
 			if (calccenter) {
-				if (latmax < wayp[i].getMaxLat())
-					latmax = wayp[i].getMaxLat();
-				if (latmin < wayp[i].getMinLat())
-					latmin = wayp[i].getMinLat();
-				if (lonmax < wayp[i].getMaxLon())
-					lonmax = wayp[i].getMaxLon();
-				if (lonmin < wayp[i].getMinLon())
-					lonmin = wayp[i].getMinLon();
+				if (latmax < wayp[i].getMaxLat()) latmax = wayp[i].getMaxLat();
+				if (latmin < wayp[i].getMinLat()) latmin = wayp[i].getMinLat();
+				if (lonmax < wayp[i].getMaxLon()) lonmax = wayp[i].getMaxLon();
+				if (lonmin < wayp[i].getMinLon()) lonmin = wayp[i].getMinLon();
 			}
 		}
 		// routes
-		var data = xmldata.getElementsByTagNameNS(
-				"http://www.topografix.com/GPX/1/1", "rte");
+		var data = xmldata.getElementsByTagNameNS("http://www.topografix.com/GPX/1/1", "rte");
 		for (var i = 0; i < data.length; i++) {
 			if (i == 0)
 				rte = [];
 			rte[i] = new route(data[i]);
 			if (calccenter) {
-				if (latmax < wayp[i].getMaxLat())
-					latmax = wayp[i].getMaxLat();
-				if (latmin < wayp[i].getMinLat())
-					latmin = wayp[i].getMinLat();
-				if (lonmax < wayp[i].getMaxLon())
-					lonmax = wayp[i].getMaxLon();
-				if (lonmin < wayp[i].getMinLon())
-					lonmin = wayp[i].getMinLon();
+				if (latmax < rte[i].getMaxLat()) latmax = rte[i].getMaxLat();
+				if (latmin < rte[i].getMinLat()) latmin = rte[i].getMinLat();
+				if (lonmax < rte[i].getMaxLon()) lonmax = rte[i].getMaxLon();
+				if (lonmin < rte[i].getMinLon()) lonmin = rte[i].getMinLon();
 			}
 		}
 		// tracks
-		var data = xmldata.getElementsByTagNameNS(
-				"http://www.topografix.com/GPX/1/1", "trk");
+		var data = xmldata.getElementsByTagNameNS("http://www.topografix.com/GPX/1/1", "trk");
 		for (var i = 0; i < data.length; i++) {
 			if (i == 0)
 				tck = [];
 			tck[i] = new track(data[i]);
 			if (calccenter) {
-				if (latmax < wayp[i].getMaxLat())
-					latmax = wayp[i].getMaxLat();
-				if (latmin < wayp[i].getMinLat())
-					latmin = wayp[i].getMinLat();
-				if (lonmax < wayp[i].getMaxLon())
-					lonmax = wayp[i].getMaxLon();
-				if (lonmin < wayp[i].getMinLon())
-					lonmin = wayp[i].getMinLon();
+				if (latmax < tck[i].getMaxLat()) latmax = tck[i].getMaxLat();
+				if (latmin < tck[i].getMinLat()) latmin = tck[i].getMinLat();
+				if (lonmax < tck[i].getMaxLon()) lonmax = tck[i].getMaxLon();
+				if (lonmin < tck[i].getMinLon()) lonmin = tck[i].getMinLon();
 			}
 		}
 		// create map
 		var mapOptions = {
-			center : new google.maps.LatLng((latmax + latmin) / 2,
-					(lonmax + lonmin) / 2),
+			center : new google.maps.LatLng((latmax + latmin) / 2,	(lonmax + lonmin) / 2),
 			zoom : 8,
 			mapTypeId : google.maps.MapTypeId.ROADMAP
 		};
-		var map = new google.maps.Map(mapcnv, mapOptions);
+		map = new google.maps.Map(mapcnv, mapOptions);
 		for (var i = 0; i < wayp.length; i++) {
 			wayp[i].map(map)
 		}
@@ -141,16 +138,110 @@ var mapsgpx = function(mapcanvas , gpxfile , imgfiles) {
 				tck[i].mapTrack(map);
 			}
 		// read immages
+		setWorkers(imgf);
 	}
-	this.distance = function(lat1, lon1, lat2, lon2) {
-		var latdiff = lat1 - lat2;
-		var londiff = lon1 - lon2;
-		return Math.sqrt((latdiff * latdiff) + (londiff * londiff));
+	var createWayPoint = function(mes){
+		var wp = document.createElementNS("http://www.topografix.com/GPX/1/1" , "wpt");
+		var att = document.createAttribute("lat");
+		att.value = mes.gpslat.toString();
+		wp.setAttributeNode(att);
+		att = document.createAttribute("lon");
+		att.value = mes.gpslon.toString();
+		wp.setAttributeNode(att);
+		var w;
+		if (mes.gpsalt){
+			w = document.createElementNS("http://www.topografix.com/GPX/1/1" , "ele");
+			w.innerHtml = mes.gpsalt.toString();
+			wp.appendChild(w);
+		}
+		if (mes.gpsdate){
+			w = document.createElementNS("http://www.topografix.com/GPX/1/1" , "time");
+			w.innerHtml = mes.gpsdate.toISOString();
+			wp.appendChild(w);
+		}else if(mes.dtoriginal){
+			w = document.createElementNS("http://www.topografix.com/GPX/1/1" , "time");
+			w.innerHtml = mes.dtoriginal.toISOString();
+			wp.appendChild(w);			
+		}else if(mes.dtchange){
+			w = document.createElementNS("http://www.topografix.com/GPX/1/1" , "time");
+			w.innerHtml = mes.dtchange.toISOString();
+			wp.appendChild(w);			
+		}else if(mes.dtdigital){
+			w = document.createElementNS("http://www.topografix.com/GPX/1/1" , "time");
+			w.innerHtml = mes.dtdigital.toISOString();
+			wp.appendChild(w);			
+		}
+		if (mes.author){
+			w = document.createElementNS("http://www.topografix.com/GPX/1/1" , "name");
+			w.innerHtml = mes.author;
+			wp.appendChild(w);
+		}		
+		if (mes.title){
+			w = document.createElementNS("http://www.topografix.com/GPX/1/1" , "desc");
+			w.innerHtml = mes.title;
+			wp.appendChild(w);
+		}		
+		w = document.createElementNS("http://www.topografix.com/GPX/1/1" , "symb");
+		w.innerHtml = "Pin, Red";
+		wp.appendChild(w);
+		var rx = /^(rte|trk|extensions)$/g;
+		var k = xmldata.getElementsByTagNameNS("http://www.topografix.com/GPX/1/1","gpx")[0].firstElementChild;
+		while (k && !rx.test(k.tagname)) k = k.nextElementSibling;
+		wp = xmldata.getElementsByTagNameNS("http://www.topografix.com/GPX/1/1","gpx")[0].insertBefore(w , k);
+		if (wayp)	wayp = [];
+		var i = wayp.length;
+		wayp[i] = new waypoint();
+		wayp[i].init(wp);
+		return wayp[i]; 
 	}
-	console.log("constructor " + file.name);
+	var getWorkerResult = function(event){
+		var dt = event.data;
+		if (dt.error == null && dt.gpslat != null && dt.gpslon != null ){
+			var wp = new pointloc(dt.gpslat , dt.gpslon);
+			var dp = null;
+			var d = 100;
+			for (var i = 0 ; i < wayp.length ; i++){
+				dp = wayp[i].mindistance(wp , d , dp);
+				if (dp) d = dp.distance;
+			}
+			if (rte)
+				for (var i = 0 ; i < rte.length ; i++){
+					dp = rte[i].mindistance(wp , d , dp);
+					if (dp) d = dp.distance;
+				}
+			if (tck)
+				for (var i = 0 ; i < tck.length ; i++){
+					dp = tck[i].mindistance(wp , d , dp);
+					if (dp) d = dp.distance;
+				}
+			if (dp &&  dp.wp){
+				dp.wp.addLinks(dt);
+				dp.wp.map(map);
+			}else{
+				var n = createWayPoint(dt);
+				n.addLinks(dt);
+				n.map(map);
+			}
+			
+		}
+		
+	}
+
 	if (file) {
 		reader.readAsText(file);
 	}
+}
+var distance = function(p1, p2 ) {
+	
+	var tr  = 6371000; // m
+	var lt1 = p1.lat * Math.PI / 180;
+	var lt2 = p2.lat * Math.PI / 180;
+	var ltinc = (p2.lat - p1.lat) * Math.PI / 180;
+	var lninc = (p2.lon - p1.lon) * Math.PI / 180;
+
+	var a = Math.sin(ltinc/2) * Math.sin(ltinc/2) + Math.cos(lt1) * Math.cos(lt2) * Math.sin(lninc/2) * Math.sin(lninc/2);
+	var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+	return tr * c;
 }
 
 var getColor = function(color) {
@@ -191,9 +282,14 @@ var getColor = function(color) {
 		return "#000000";
 	}
 }
-var pointloc = function(x, y) {
+var pointloc = function(x, y , d) {
 	this.lat = x;
 	this.lon = y;
+	this.distance = null;
+	this.wp = null;
+	if (d !== undefined){
+		this.distance = d;
+	}
 }
 var getNodesValue = function(ele, ns, tag) {
 	var name = ele.getElementsByTagNameNS(ns, tag);
@@ -348,6 +444,7 @@ var userdata = function() {
 	}
 }
 var link = function(ele) {
+	var xmlele = ele;
 	var ref = null;
 	var text = null;
 	var type = null
@@ -358,7 +455,53 @@ var link = function(ele) {
 	}
 	text = getNodesValue(ele, "http://www.topografix.com/GPX/1/1", "text");
 	type = getNodesValue(ele, "http://www.topografix.com/GPX/1/1", "type");
+	if (!type) {
+		if ((text && (text.endsWith(".jpg") || text.endsWith(".jpeg"))) || (ref && (ref.endsWith(".jpg") || ref.endsWith(".jpeg")))){
+			type = "image/jpeg";
+		}   
+	}
+	link.create = function(txt ,parent , type){
+		var e = document.createElementNS("http://www.topografix.com/GPX/1/1" , "link");
+		var w = document.createTextNode(txt);
+		var tx = document.createElementNS("http://www.topografix.com/GPX/1/1" , "text");
+		tx.appendChild(w);
+		var w = document.createTextNode(type);
+		var tp = document.createElementNS("http://www.topografix.com/GPX/1/1" , "type");
+		tp.appendChild(w);
+		e.appendChild(tx);
+		e.appendChild(tp);
+		if (parent ) {
+			var k = parent.firstElementChild;
+			if (k == null) {
+				parent.appendChild(e);
+			}else{
+				var rx ;
+				if (parent.tagname == "metadata"){
+					rx = /^(time|keywords|bounds|extensions)$/g;
+				}else {
+					rx = /sym|type|fix|sat|hdop|vdop|pdop|ageofdgpsdata|dgpsid|exrtensions/g;
+				}
+				while (k && !rx.test(k.tagname)) k = k.nextElementSibling;
+				e = parent.insertBefore(e , k);
+			}
+		}
+		var lk = new link(e)
+		return lk;
+	}
 	this.getAsChild = function() {
+		var ret;
+		var rgx = /image\/jpeg/g;
+		if (type && rgx.test(type)){
+			ret = document.createElement("img");
+			att = document.createAttribute("src");
+			rgx = /base64/g;
+			if (rgx.test(type)){
+				att.value = text;
+			}else
+				att.value = text ? text : href;
+			ret.setAttributeNode(att);
+			return ret;
+		}
 		ret = document.createElement("a");
 		if (ref) {
 			ret.href = ref;
@@ -430,6 +573,7 @@ var waypoint = function() {
 	this.time = null
 	this.ord;
 	var marker = null;
+	var xmlele = null;
 	this.init = function(wp, ord) {
 		if (ord !== undefined) {
 			this.ord = ord;
@@ -444,6 +588,7 @@ var waypoint = function() {
 			lon = parseFloat(wp.getAttribute("lon"));
 		} else
 			return -1;
+		xmlele = wp;
 		maxLat = lat;
 		minLat = lat;
 		maxLon = lon;
@@ -457,29 +602,22 @@ var waypoint = function() {
 				if (icon == gpxsymb[i])
 					icon = "icones/" + mapssymb[i];
 		}
-		var w = wp.getElementsByTagNameNS("http://www.topografix.com/GPX/1/1",
-				"link");
+		var w = wp.getElementsByTagNameNS("http://www.topografix.com/GPX/1/1","link");
 		if (w && w.length) {
+			if (!image) image = [];
 			for (var i = 0; i < w.length; i++)
 				image[i] = new link(w[i]);
 		}
 		w = getNodesValue(wp, "http://www.topografix.com/GPX/1/1", "time");
-		if (w)
-			this.time = Date.parse(w);
-		if (!this.time)
-			console.log("lt:" + lat + " lon:" + lon + " ord:" + ord);
+		if (w)	this.time = Date.parse(w);
 		// garmin extension
 		streetAdress = getNodesValue(wp,
 				"http://www.garmin.com/xmlschemas/GpxExtensions/v3",
 				"StreetAddress");
-		city = getNodesValue(wp,
-				"http://www.garmin.com/xmlschemas/GpxExtensions/v3", "City");
-		state = getNodesValue(wp,
-				"http://www.garmin.com/xmlschemas/GpxExtensions/v3", "State");
-		country = getNodesValue(wp,
-				"http://www.garmin.com/xmlschemas/GpxExtensions/v3", "Country");
-		w = wp.getElementsByTagNameNS(
-				"http://www.garmin.com/xmlschemas/GpxExtensions/v3", "rpt");
+		city = getNodesValue(wp, "http://www.garmin.com/xmlschemas/GpxExtensions/v3", "City");
+		state = getNodesValue(wp, "http://www.garmin.com/xmlschemas/GpxExtensions/v3", "State");
+		country = getNodesValue(wp, "http://www.garmin.com/xmlschemas/GpxExtensions/v3", "Country");
+		w = wp.getElementsByTagNameNS("http://www.garmin.com/xmlschemas/GpxExtensions/v3", "rpt");
 		for (var i = 0; i < w.length; i++) {
 			if (i == 0)
 				rtpoints = [];
@@ -521,6 +659,59 @@ var waypoint = function() {
 	this.getMinLon = function() {
 		return this.minLon;
 	}
+	
+	this.addIMG = function(txt){
+		var ln = link.create(txt , this.xmlelem , "image/jpeg");
+		if (!image) image = [];
+		image[image.length] = ln;
+	}
+	var setSpawnElem = function(mes , val){
+		var ret = document.createElement("div");
+		for (var i = 0 ; i < translates.length ; i++){
+			var e = document.createElement("spawn");
+			var at = document.createAttribute("lang");
+			at.value = translates[i]
+			e.setAttributeNode(at);
+			at = document.createAttribute("class");
+			at.value = "linklabel";
+			e.setAttributeNode(at);
+			e.innerHTML = translate_lang[ translates[i]][mes] + ": ";
+			ret.appendChild(e);
+		}
+		var e1 = document.createElement("spawn");
+		at1 = document.createAttribute("class");
+		at1.value = "linkvalue";
+		e1.setAttributeNode(at1);
+		e1.innerHTML = val;
+		ret.appendChild(e1);
+		return ret;
+	}
+	this.addLinks = function(mes){
+		var txt = document.createElement("div");
+		if (mes.filename !== null) txt.appendChild(setSpawnElem("filename" , mes.filename));
+		if (mes.dtchange != null) txt.appendChild(setSpawnElem("dtchange" , mes.dtchange.toLocaleString()));
+		if (mes.dtoriginal != null) txt.appendChild(setSpawnElem("dtoriginal", mes.dtoriginal.toLocaleString()));
+		if (mes.dtdigital != null) txt.appendChild(setSpawnElem('dtdigital', mes.dtdigital.toLocaleString()));
+		if (mes.author !== null) txt.appendChild(setSpawnElem('author', mes.author));
+		if (mes.title !== null)	 txt.appendChild(setSpawnElem('title', mes.title));
+		if (mes.gpslat !== null) txt.appendChild(setSpawnElem('gpslat', mes.gpslat.toString()));
+		if (mes.gpslon !== null) txt.appendChild(setSpawnElem('gpslon', mes.gpslon.toString()));
+		if (mes.gpsalt !== null) txt.appendChild(setSpawnElem('gpsalt', mes.gpsalt.toString()));
+		if (mes.gpsdate !== null) txt.appendChild(setSpawnElem('gpsdate', mes.gpsdate.toLocaleString()));
+		if (mes.error !== null)  txt.appendChild(setSpawnElem('meserror', mes.error));
+		if (txt.hasChildNodes()){
+			var s = new XMLSerializer(); 
+			var ln = link.create(s.serializeToString(txt).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/>/g , "&gt;").replace(/</g , "&lt;") , this.xmlelem , "text/html");
+			if (!image) image = [];
+			image[image.length] = ln;			
+		}
+		if (mes.base64src != null){
+			var ln = link.create(mes.base64src,this.xmlelem , "image/jpeg");
+			if (!image) image = [];
+			image[image.length] = ln;			
+		}
+	}
+	
 	this.map = function(m) {
 		if (icon) {
 			var myLatlng = new google.maps.LatLng(lat, lon);
@@ -566,7 +757,16 @@ var waypoint = function() {
 			}
 		return ret;
 	}
-
+	this.mindistance = function(p1 , d , defp){
+		var p2 = new pointloc(this.lat , this.lon);
+		var d1 = distance(p1 , p2);
+		if (d1 < d) {
+			p2.distance = d1;
+			p2.wp = this;
+			return p2;
+		} 
+		return p1;
+	}
 }
 var route = function(ele) {
 	var w;
@@ -611,12 +811,12 @@ var route = function(ele) {
 		return this.latmax;
 	}
 	this.getMaxLon = function() {
-		return this.latmin;
-	}
-	this.getMinLat = function() {
 		return this.lonmax;
 	}
-	this.getMaxLon = function() {
+	this.getMinLat = function() {
+		return this.latmin;
+	}
+	this.getMinLon = function() {
 		return this.lonmin;
 	}
 	this.mapRoute = function(m) {
@@ -651,6 +851,17 @@ var route = function(ele) {
 			strokeWeight : 4.,
 			map : m
 		});
+	}
+	this.mindistance = function(p1 , d , defp){
+		var pd = defp;
+		var d2 = d;
+		for (var i = 0; i < rtpoint.length ; i++){
+			d2 = rtpoint[i].mindistance(p1 , d2 , pd);
+			if (d2) {
+				d2 = pd.distance;
+			}
+		}
+		return d2 ;
 	}
 }
 var segment = function() {
@@ -723,12 +934,12 @@ var track = function(ele) {
 		return this.latmax;
 	}
 	this.getMaxLon = function() {
-		return this.latmin;
-	}
-	this.getMinLat = function() {
 		return this.lonmax;
 	}
-	this.getMaxLon = function() {
+	this.getMinLat = function() {
+		return this.latmin;
+	}
+	this.getMinLon = function() {
 		return this.lonmin;
 	}
 	this.mapTrack = function(m) {
@@ -766,4 +977,20 @@ var track = function(ele) {
 			map : m
 		});
 	}
+	this.mindistance = function(p1 , d , defp){
+		var pd = defp;
+		var d2 = d;
+		if (!seg)
+			return pd;
+		for (var i = 0; i < seg.length; i++) {
+			for (var j = 0; j < seg[i].pt.length; j++) {
+				d2 = seg[i].pt[j].mindistance(p1 , d2 , pd);
+				if (d2) {
+					d2 = pd.distance;
+				}
+			}
+		}
+		return d2 ;
+	}
+
 }

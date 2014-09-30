@@ -45,6 +45,7 @@ var readObject = function(file, func){
 	var GPSTIME  = 0x0007;
 	var GPSDATE  = 0x001d;
 
+	var fileobj = file;
 	var reader = new FileReaderSync();
 	var mess = new mapsgpxmess();
 	var end = 0;
@@ -178,7 +179,10 @@ var readObject = function(file, func){
 		while (next){
 			next = ifd(link + next);
 		}
-		if (WorkerMode) postMessage(mess);
+		if (WorkerMode) {
+			mess.base64src = reader.readAsDataURL(file);
+			postMessage(mess);
+		}
 		else if(retfunc !== undefined) retfunc(mess);
 	}
 	function vdate(np){
