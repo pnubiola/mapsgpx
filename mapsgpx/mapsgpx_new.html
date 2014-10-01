@@ -73,13 +73,16 @@ body {
 <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?sensor=FALSE"></script>
 <script type="text/javascript" src = "mapsgpxmess.js"></script>
 <script type="text/javascript" src = "mapsgpx.js" ></script>
-<script type="text/javascript">var MapsGpx</script>
+<script type="text/javascript">
+	var MapsGpx = null;
+</script>
 </head>
 <body>
 	<div id="infobar">
-		<input id="upload" type="file" accept=".gpx" />
-		<input id="photos" type="file" accept="image/jpeg" multiple />
-		<button onclick="MapsGpx = new mapsgpx(document.getElementById('map_canvas'),document.getElementById('upload').files,document.getElementById('photos').files );">Load Files</button>
+		<input id="upload" type="file" accept=".gpx" 
+			onchange="MapsGpx = new mapsgpx(document.getElementById('map_canvas'),this.files,document.getElementById('photos').files );"/>
+		<input id="photos" type="file" accept="image/jpeg" multiple 
+			onchange="if (MapsGpx) MapsGpx.readFileImages(this.files)"/>
 		<button onclick="MapsGpx.getUser('userinfo');">File Info</button>
 	</div>
 	<div id="userinfo"></div>
