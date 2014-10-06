@@ -126,9 +126,10 @@ var mapsgpx = function(mapcanvas , gpxfile , imgfiles) {
 			mapTypeId : google.maps.MapTypeId.ROADMAP
 		};
 		map = new google.maps.Map(mapcnv, mapOptions);
-		for (var i = 0; i < wayp.length; i++) {
-			wayp[i].map(map)
-		}
+		if (wayp)
+			for (var i = 0; i < wayp.length; i++) {
+				wayp[i].map(map)
+			}
 		if (rte)
 			for (var i = 0; i < rte.length; i++) {
 				rte[i].mapRoute(map);
@@ -141,47 +142,47 @@ var mapsgpx = function(mapcanvas , gpxfile , imgfiles) {
 		setWorkers(imgf);
 	}
 	var createWayPoint = function(mes){
-		var wp = document.createElementNS("http://www.topografix.com/GPX/1/1" , "wpt");
-		var att = document.createAttribute("lat");
+		var wp = xmldata.createElementNS("http://www.topografix.com/GPX/1/1" , "wpt");
+		var att = xmldata.createAttribute("lat");
 		att.value = mes.gpslat.toString();
 		wp.setAttributeNode(att);
-		att = document.createAttribute("lon");
+		att = xmldata.createAttribute("lon");
 		att.value = mes.gpslon.toString();
 		wp.setAttributeNode(att);
 		var w;
 		if (mes.gpsalt){
-			w = document.createElementNS("http://www.topografix.com/GPX/1/1" , "ele");
+			w = xmldata.createElementNS("http://www.topografix.com/GPX/1/1" , "ele");
 			w.innerHtml = mes.gpsalt.toString();
 			wp.appendChild(w);
 		}
 		if (mes.gpsdate){
-			w = document.createElementNS("http://www.topografix.com/GPX/1/1" , "time");
+			w = xmldata.createElementNS("http://www.topografix.com/GPX/1/1" , "time");
 			w.innerHtml = mes.gpsdate.toISOString();
 			wp.appendChild(w);
 		}else if(mes.dtoriginal){
-			w = document.createElementNS("http://www.topografix.com/GPX/1/1" , "time");
+			w = xmldata.createElementNS("http://www.topografix.com/GPX/1/1" , "time");
 			w.innerHtml = mes.dtoriginal.toISOString();
 			wp.appendChild(w);			
 		}else if(mes.dtchange){
-			w = document.createElementNS("http://www.topografix.com/GPX/1/1" , "time");
+			w = xmldata.createElementNS("http://www.topografix.com/GPX/1/1" , "time");
 			w.innerHtml = mes.dtchange.toISOString();
 			wp.appendChild(w);			
 		}else if(mes.dtdigital){
-			w = document.createElementNS("http://www.topografix.com/GPX/1/1" , "time");
+			w = xmldata.createElementNS("http://www.topografix.com/GPX/1/1" , "time");
 			w.innerHtml = mes.dtdigital.toISOString();
 			wp.appendChild(w);			
 		}
 		if (mes.author){
-			w = document.createElementNS("http://www.topografix.com/GPX/1/1" , "name");
+			w = xmldata.createElementNS("http://www.topografix.com/GPX/1/1" , "name");
 			w.innerHtml = mes.author;
 			wp.appendChild(w);
 		}		
 		if (mes.title){
-			w = document.createElementNS("http://www.topografix.com/GPX/1/1" , "desc");
+			w = xmldata.createElementNS("http://www.topografix.com/GPX/1/1" , "desc");
 			w.innerHtml = mes.title;
 			wp.appendChild(w);
 		}		
-		w = document.createElementNS("http://www.topografix.com/GPX/1/1" , "sym");
+		w = xmldata.createElementNS("http://www.topografix.com/GPX/1/1" , "sym");
 		w.innerHtml = "Pin, Red";
 		wp.appendChild(w);
 		var rx = /^(rte|trk|extensions)$/g;
