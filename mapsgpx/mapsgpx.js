@@ -37,6 +37,40 @@ var mapsgpx = function(mapcanvas , gpxfile , imgfiles) {
 	this.readFileImages= function(im){
 		setWorkers(im);
 	}
+	var getWorkerResult = function(event){
+		var dt = event.data;
+		console.log("getWorkerResult called")
+		if (dt.error == null && dt.gpslat != null && dt.gpslon != null ){
+			var wp = new pointloc(dt.gpslat , dt.gpslon);
+			var dp = null;
+			var d = 100;
+			for (var i = 0 ; i < wayp.length ; i++){
+				dp = wayp[i].mindistance(wp , d , dp);
+				if (dp) d = dp.distance;
+			}
+			if (rte)
+				for (var i = 0 ; i < rte.length ; i++){
+					dp = rte[i].mindistance(wp , d , dp);
+					if (dp) d = dp.distance;
+				}
+			if (tck)
+				for (var i = 0 ; i < tck.length ; i++){
+					dp = tck[i].mindistance(wp , d , dp);
+					if (dp) d = dp.distance;
+				}
+			if (dp &&  dp.wp){
+				dp.wp.addLinks(dt);
+				dp.wp.map(map);
+			}else{
+				var n = createWayPoint(dt);
+				n.addLinks(dt);
+				n.map(map);
+			}
+			
+		}
+		
+	}
+
 	var setWorkers = function(im){
 		numWorkers = im.length;
 		for (var i = 0 ; i < numWorkers ; i++){
@@ -152,80 +186,48 @@ var mapsgpx = function(mapcanvas , gpxfile , imgfiles) {
 		var w;
 		if (mes.gpsalt){
 			w = xmldata.createElementNS("http://www.topografix.com/GPX/1/1" , "ele");
-			w.innerHtml = mes.gpsalt.toString();
+			w.innerHTML = mes.gpsalt.toString();
 			wp.appendChild(w);
 		}
 		if (mes.gpsdate){
 			w = xmldata.createElementNS("http://www.topografix.com/GPX/1/1" , "time");
-			w.innerHtml = mes.gpsdate.toISOString();
+			w.innerHTML = mes.gpsdate.toISOString();
 			wp.appendChild(w);
 		}else if(mes.dtoriginal){
 			w = xmldata.createElementNS("http://www.topografix.com/GPX/1/1" , "time");
-			w.innerHtml = mes.dtoriginal.toISOString();
+			w.innerHTML = mes.dtoriginal.toISOString();
 			wp.appendChild(w);			
 		}else if(mes.dtchange){
 			w = xmldata.createElementNS("http://www.topografix.com/GPX/1/1" , "time");
-			w.innerHtml = mes.dtchange.toISOString();
+			w.innerHTML = mes.dtchange.toISOString();
 			wp.appendChild(w);			
 		}else if(mes.dtdigital){
 			w = xmldata.createElementNS("http://www.topografix.com/GPX/1/1" , "time");
-			w.innerHtml = mes.dtdigital.toISOString();
+			w.innerHTML = mes.dtdigital.toISOString();
 			wp.appendChild(w);			
 		}
 		if (mes.author){
 			w = xmldata.createElementNS("http://www.topografix.com/GPX/1/1" , "name");
-			w.innerHtml = mes.author;
+			w.innerHTML = mes.author;
 			wp.appendChild(w);
 		}		
 		if (mes.title){
 			w = xmldata.createElementNS("http://www.topografix.com/GPX/1/1" , "desc");
-			w.innerHtml = mes.title;
+			w.innerHTML = mes.title;
 			wp.appendChild(w);
 		}		
 		w = xmldata.createElementNS("http://www.topografix.com/GPX/1/1" , "sym");
-		w.innerHtml = "Pin, Red";
+		w.innerHTML = "Pin, Red";
 		wp.appendChild(w);
 		var rx = /^(rte|trk|extensions)$/g;
 		var k = xmldata.getElementsByTagNameNS("http://www.topografix.com/GPX/1/1","gpx")[0].firstElementChild;
-		while (k && !rx.test(k.tagname)) k = k.nextElementSibling;
+		for(;k && !rx.test(k.localName);k = k.nextElementSibling) ;
 		wp = xmldata.getElementsByTagNameNS("http://www.topografix.com/GPX/1/1","gpx")[0].insertBefore(wp , k);
-		if (wayp)	wayp = [];
+		if (!wayp)	wayp = [];
 		var i = wayp.length;
 		wayp[i] = new waypoint();
 		wayp[i].init(wp);
 		return wayp[i]; 
-	}
-	var getWorkerResult = function(event){
-		var dt = event.data;
-		if (dt.error == null && dt.gpslat != null && dt.gpslon != null ){
-			var wp = new pointloc(dt.gpslat , dt.gpslon);
-			var dp = null;
-			var d = 100;
-			for (var i = 0 ; i < wayp.length ; i++){
-				dp = wayp[i].mindistance(wp , d , dp);
-				if (dp) d = dp.distance;
-			}
-			if (rte)
-				for (var i = 0 ; i < rte.length ; i++){
-					dp = rte[i].mindistance(wp , d , dp);
-					if (dp) d = dp.distance;
-				}
-			if (tck)
-				for (var i = 0 ; i < tck.length ; i++){
-					dp = tck[i].mindistance(wp , d , dp);
-					if (dp) d = dp.distance;
-				}
-			if (dp &&  dp.wp){
-				dp.wp.addLinks(dt);
-				dp.wp.map(map);
-			}else{
-				var n = createWayPoint(dt);
-				n.addLinks(dt);
-				n.map(map);
-			}
-			
-		}
-		
 	}
 
 	if (file) {

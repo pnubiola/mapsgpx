@@ -16,6 +16,15 @@
     along with mapsgpx.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+var endsWith = function( a , b){
+	if (!a) return false;
+	return a.substr(-b.length , b.length ) == b;
+}
+var getProtocol = function (a){
+	var i = a.indexOf(":");
+	if (i < 0) return "";
+	return a.substring(0, i);
+}
 var link = function(ele) {
 	var xmlele = ele;
 	var ref = null;
@@ -29,9 +38,11 @@ var link = function(ele) {
 	text = getNodesValue(ele, "http://www.topografix.com/GPX/1/1", "text");
 	type = getNodesValue(ele, "http://www.topografix.com/GPX/1/1", "type");
 	if (!type) {
-		if ((text && (text.endsWith(".jpg") || text.endsWith(".jpeg"))) || (ref && (ref.endsWith(".jpg") || ref.endsWith(".jpeg")))){
+		if (endsWith(text , ".jpg")){ // || endsWith(text ,".jpeg") || endsWith(ref , ".jpg") || endsWith(ref ,".jpeg")){
 			type = "image/jpeg";
-		}   
+		}else if (getProtocol(text) == "http" || getProtocol(text) == "https" || getProtocol(ref) == "http" || getProtocol(ref) == "https"){
+			type = "text/html"
+		}
 	}
 	link.create = function(txt ,parent , type , fnm){
 		var e = document.createElementNS("http://www.topografix.com/GPX/1/1" , "link");
